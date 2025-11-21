@@ -23,7 +23,12 @@ constexpr uint8_t JOY_Y = A1;
 
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST);	// Tft object for controlling screen
 
-// Variables for snake game
+// Constants for analog stick input
+constexpr int16_t DEADZONE = 200;
+constexpr int16_t MIN_VAL = 512 - DEADZONE;
+constexpr int16_t MAX_VAL = 512 + DEADZONE;
+
+// Constant global variables for snake game
 constexpr uint8_t CELL_SIZE = 8; // Each grid field will take 8 pixels
 constexpr uint8_t VERTICAL_AXIS = 128 / CELL_SIZE; 	// Here we're dividing our screen by cells, so we get 16x16 screen
 constexpr uint8_t HORIZONTAL_AXIS = 128 / CELL_SIZE;
@@ -109,6 +114,32 @@ void drawGrid() {
 
 Snake snake; // Snake object
 
+// void readButton() {						useless right now
+// 	static uint32_t lastPressed = 0;
+// 	uint8_t shiftDelay = 200;
+// 	if (millis() - lastPressed >= shiftDelay) {
+// 		lastPressed = millis();
+// 		return true;
+// 	}
+
+// 	return false;
+// }
+
+void controlDirection(Snake &snake) {
+
+	// static bool lastButtonState = false;
+	// bool buttonPressed = readButton();
+
+	int analogX = analogRead(JOY_X);
+	int analogY = analogRead(JOY_Y);
+
+	if (analogX < MIN_VAL) snake.setDirection(LEFT);
+	else if (analogX > MAX_VAL) snake.setDirection(RIGHT); 
+	else if (analogY < MIN_VAL) snake.setDirection(UP);
+	else if (analogY > MAX_VAL) snake.setDirection(DOWN);
+
+}
+
 void setup() {
 	pinMode(JOY_SW, INPUT_PULLUP);
 
@@ -122,11 +153,18 @@ void setup() {
 }
 
 void loop() {
+	static uint32_t lastMove = 0;
+	const uint8_t moveDelay = 500;
 	
-	drawGrid();
-	snake.move();
-	snake.draw();
-	delay(500);
-	tft.fillScreen(BLACK);
+	if (millis() - lastMove > moveDelay ) {
+		lastMove = millis();
+		
+		controlDirection(snake);
+		snake.move();
 
+		tft.fillScreen(BLACK);
+		drawGrid();
+		snake.draw();
+
+	}
 }
